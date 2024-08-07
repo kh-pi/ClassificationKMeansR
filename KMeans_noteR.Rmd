@@ -1,0 +1,218 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+La methode des K-Moyennes encore appelée K-Means propose de choisir aléatoirement un point commle le barycentre de chaque groupepuis de le recalculer à chaque nouvel individu introduit dans le groupe. Cette technique est interessante car elle s'adapte lorsque nous injectons de nouveaux individus. K-means a la difference de la Classification ascendante hierarchique, ne fournis pas d'outil d'aide à la détection du nombre de classes sous R
+
+Le nombre optimal de classes ici sera determiner par la methode de Calinksi-Harabasz 
+
+#Importation du dataframe
+
+```{r}
+data <- read.csv("C:/Users/Abraham_KINNIN/Desktop/KMeans Rstudio/supermarket_sales - Sheet1.csv", header = TRUE, sep = ",")
+```
+
+#Data mining
+C'est important de pouvoir comprendre les données que nous manipulons 
+
+```{r}
+length(data) #longueur de la dataframe
+dim(data) # la dimension
+str(data) # La structure de la dataframe
+nrow(data)
+ncol(data)
+```
+
+la fonction summary fait apparaitre une breve description statistique de nos données
+
+```{r}
+summary(data)
+```
+
+En un premier temps je vais supprimer les valeurs manquantes et essayer de definir l'id comment valeur de colonne
+
+```{r}
+data <- na.omit(data) 
+```
+
+```{r}
+rownames(data)<- data$Invoice.ID
+nrow(data)
+```
+Inspection des données est avec la fonction View
+
+```{r}
+View(data)
+```
+
+```{r}
+kdata <- data[,c("Branch","City","Customer.type","Gender","Product.line","Quantity","Total","Payment","Rating")]
+```
+ 
+#Analyse exploratoire
+Observons la repartition de la categorie des consommateurs dans chaque ville
+
+```{r}
+tab <- xtabs(~City + Customer.type,data = kdata)
+tab
+```
+
+```{r}
+barplot(tab, beside = TRUE,
+        ylim = c(0,190),
+        ylab = "Effectif",
+        legend.text = TRUE,
+        col = 2:4,
+        )
+```
+
+```{r}
+xtabs(~Product.line + Gender, data = kdata)
+```
+On peut rapidement deduire de ce tableau de contengence que les hommes consomment plus les accessoires electro les produits de beauté_santé, et de life style que les femmes on peut encore aller plus loin pour determiner les villes dans lesquelles ces produits sont plus consommées
+
+```{r}
+xtabs(~Product.line + City, data = kdata)
+```
+
+```{r}
+rownames(kdata)<-data$Invoice.ID
+```
+
+
+```{r}
+fdata<- data[,c("Total","cogs","gross.margin.percentage","gross.income","Rating")]
+
+rownames(fdata)<-data$Invoice.ID
+View(fdata)
+```
+
+
+```{r}
+if(!require("vegan")){
+  install.packages("vegan")
+}
+library(vegan)
+k.cal <- cascadeKM(fdata,2,10,
+                   iter = 100,
+                   criterion = "calinski")
+plot(k.cal)
+```
+#LA methode elboww
+
+```{r}
+library(factoextra)
+library(ggplot2)
+fviz_nbclust(fdata,kmeans,method = "wss")
+```
+ 
+Techniquement l'algorithm n'arrive pas a trouver une methode de separation entre les individus cela veut signifier que chaque inddividus est singulier ce qui convient de faire ici est de revoir les variables choisies et aussi d'essayer un ACP sur nos variables avant la classification 
+
+Essayons l'ACP
+
+```{r}
+if(!require("ade4")){
+  install.packages("ade4")
+  library(ade4)
+}
+fdata.pca<- dudi.pca(fdata,center = TRUE,
+                       scale = TRUE,
+                       nf = 3,
+                     scannf = FALSE)
+```
+
+
+Valeurs propres
+
+```{r}
+get_eig(fdata.pca)
+```
+
+```{r}
+library(factoextra)
+fviz_screeplot(fdata.pca)
+```
+
+```{r}
+library(FactoMineR)
+dpca<-PCA(fdata,ncp = 3,graph = FALSE)# on a dû refaire l'ACP puisque le HCPC ne marcche qu''avec la library FactoMiner
+data.hcpc<-HCPC( dpca,
+                graph = FALSE)
+```
+
+```{r}
+fviz_dend(data.hcpc,cex = 0.7,palette = "jco",rect = TRUE,
+          rect_fill = TRUE,rect_border = "jco",labels_track_height = 0.8)
+```
+
+
+```{r}
+fviz_cluster(data.hcpc,repel = TRUE,show.clust.cent = TRUE,
+             palette = "jco", ggtheme = theme_minimal(),
+             main = "Map_Cluster")
+```
+
+
+
+L'ACP ne nous a pas trop aider on va devoir revoir nos variables
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
